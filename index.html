@@ -1,0 +1,1464 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Стак-майстер</title>
+<style>
+  :root {
+    --bg: #241a14;
+    --panel: #3b2a1f;
+    --panel2: #4b3626;
+    --edge: #140d09;
+    --text: #fff4e0;
+    --muted: #f0d6ad;
+    --accent: #ff9f1c;
+    --gold: #ffd23f;
+    --green: #7bd34a;
+    --teal: #3cc9bb;
+    --red: #ff7a66;
+    --slot: #f2e6c9;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #140e0a; }
+  body {
+    font-family: "Trebuchet MS", "Segoe UI", Verdana, Arial, sans-serif;
+    color: var(--text);
+    user-select: none; -webkit-user-select: none;
+  }
+  button { font-family: inherit; }
+  .hidden { display: none !important; }
+
+  /* ---------- Сцена 1920×1080, що масштабується під вікно ---------- */
+  #stage {
+    position: absolute; left: 0; top: 0;
+    width: 1920px; height: 1080px;
+    transform-origin: 0 0;
+    padding: 20px;
+    display: grid;
+    grid-template-columns: 370px 1fr 470px;
+    grid-template-rows: 76px 140px 1fr 270px;
+    gap: 14px;
+    grid-template-areas:
+      "top top top"
+      "q q q"
+      "chest center log"
+      "bar bar bar";
+    background-color: var(--bg);
+    background-image:
+      linear-gradient(45deg, rgba(255,255,255,.025) 25%, transparent 25%, transparent 75%, rgba(255,255,255,.025) 75%),
+      linear-gradient(45deg, rgba(255,255,255,.025) 25%, transparent 25%, transparent 75%, rgba(255,255,255,.025) 75%);
+    background-size: 48px 48px;
+    background-position: 0 0, 24px 24px;
+    overflow: hidden;
+  }
+  .panel {
+    background: var(--panel);
+    border: 4px solid var(--edge);
+    box-shadow: inset 4px 4px 0 rgba(255,255,255,.08), inset -4px -4px 0 rgba(0,0,0,.35);
+    position: relative;
+  }
+  h2 {
+    font-size: 30px; font-weight: 900; letter-spacing: .5px;
+    color: var(--gold); text-shadow: 3px 3px 0 var(--edge);
+  }
+
+  /* ---------- Кнопки ---------- */
+  .btn {
+    font-size: 26px; font-weight: 800; color: #2a1a0e;
+    background: var(--accent);
+    border: 4px solid var(--edge);
+    padding: 8px 20px;
+    box-shadow: inset -4px -5px 0 rgba(0,0,0,.25), inset 4px 4px 0 rgba(255,255,255,.4);
+    cursor: pointer; white-space: nowrap;
+  }
+  .btn:hover:not(:disabled) { filter: brightness(1.08); }
+  .btn:active:not(:disabled) { transform: translateY(2px); box-shadow: inset 4px 4px 0 rgba(0,0,0,.25); }
+  .btn:disabled { background: #8a7a6a; color: #3a2e24; cursor: default; opacity: .75; }
+  .btn-dark { background: #6b4d36; color: var(--text); }
+  .btn-green { background: var(--green); }
+  .btn-teal { background: var(--teal); }
+  .btn-gold { background: var(--gold); }
+  .btn-big { font-size: 34px; padding: 14px 30px; }
+
+  /* ---------- Верхня панель ---------- */
+  #top { grid-area: top; display: flex; align-items: center; gap: 22px; padding: 0 16px; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand-icon { width: 48px; height: 48px; display: block; }
+  .brand-name { font-size: 32px; font-weight: 900; color: var(--gold); text-shadow: 3px 3px 0 var(--edge); line-height: 1; }
+  .brand-sub { font-size: 24px; color: var(--muted); line-height: 1.1; }
+  .level-info { display: flex; align-items: center; gap: 16px; flex: 1; min-width: 0; }
+  .lvl-badge {
+    font-size: 24px; font-weight: 900; background: var(--teal); color: #10251f;
+    border: 4px solid var(--edge); padding: 4px 12px; white-space: nowrap;
+  }
+  .lvl-title { font-size: 38px; font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 3px 3px 0 var(--edge); }
+  .dots { display: flex; gap: 8px; }
+  .dot {
+    width: 44px; height: 44px; font-size: 24px; font-weight: 900;
+    background: #5a4231; color: var(--muted); border: 4px solid var(--edge); cursor: pointer;
+  }
+  .dot.on { background: var(--gold); color: #2a1a0e; }
+  .nav { display: flex; gap: 10px; }
+
+  /* ---------- Питання до класу ---------- */
+  #qbar { grid-area: q; display: flex; align-items: stretch; gap: 18px; padding: 10px 14px; background: #fff4dc; color: #2a1a0e; }
+  #qbar.panel { box-shadow: inset -5px -5px 0 #e3cfa3, inset 5px 5px 0 #fffaf0; }
+  .q-label {
+    width: 150px; flex: none; display: flex; align-items: center; justify-content: center; text-align: center;
+    background: var(--accent); border: 4px solid var(--edge); font-size: 24px; font-weight: 900; line-height: 1.15;
+  }
+  .q-body { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 6px; overflow: hidden; }
+  .q-text { font-size: 36px; font-weight: 900; line-height: 1.15; }
+  .q-extra { display: flex; flex-wrap: wrap; gap: 8px 14px; }
+  .q-hint, .q-answer { font-size: 24px; font-weight: 800; padding: 3px 12px; border: 3px solid var(--edge); line-height: 1.25; }
+  .q-hint { background: #c9f1ec; }
+  .q-answer { background: #d7f5b8; animation: fadeUp .35s ease-out; }
+  .q-btns { display: flex; flex-direction: column; justify-content: center; gap: 8px; flex: none; }
+  .q-btns .btn { font-size: 24px; padding: 6px 16px; }
+
+  /* ---------- Скриня ---------- */
+  #chest { grid-area: chest; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+  .chest-grid { display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: 1fr; gap: 10px; flex: 1; }
+  .chest-item {
+    background: #5e4430; border: 4px solid var(--edge);
+    box-shadow: inset 4px 4px 0 rgba(255,255,255,.12), inset -4px -4px 0 rgba(0,0,0,.3);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    cursor: pointer;
+  }
+  .chest-item:hover { background: #77573d; }
+  .chest-item .ci-icon { width: 70px; height: 70px; }
+  .chest-item .ci-name { font-size: 24px; font-weight: 800; line-height: 1.1; }
+  .chest-item .ci-max { font-size: 24px; font-weight: 900; color: var(--gold); line-height: 1.1; }
+  .chest-item.in-hand { outline: 4px solid var(--gold); outline-offset: -8px; }
+
+  /* ---------- Центр ---------- */
+  #center { grid-area: center; padding: 18px 22px; overflow: hidden; display: flex; flex-direction: column; }
+
+  /* ---------- Журнал ---------- */
+  #log { grid-area: log; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; overflow: hidden; }
+  .hand-box {
+    display: flex; align-items: center; gap: 12px; min-height: 64px;
+    background: #2a1e16; border: 4px solid var(--edge); padding: 4px 12px; font-size: 26px; font-weight: 800;
+  }
+  .hand-box .hb-icon { width: 46px; height: 46px; flex: none; }
+  .hand-box .hb-empty { color: #b9a185; }
+  #logList { list-style: none; display: flex; flex-direction: column; gap: 8px; overflow: hidden; flex: 1; }
+  #logList li {
+    background: #2f2219; border-left: 8px solid #7a5a40; padding: 6px 10px;
+    font-size: 24px; font-weight: 800; line-height: 1.2; color: #d9c4a6;
+  }
+  #logList li:not(.newest) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: none; }
+  #logList li .note { display: none; font-weight: 600; margin-top: 4px; color: var(--text); }
+  #logList li.newest { background: #4d3828; color: var(--text); border-left-color: var(--green); animation: fadeUp .3s ease-out; }
+  #logList li.newest .note { display: block; }
+  #logList li.newest.warn { border-left-color: var(--red); }
+  #logList li.newest.gold { border-left-color: var(--gold); }
+  #logList li.newest.info { border-left-color: var(--teal); }
+  #logList li.level { border-left-color: var(--teal); }
+
+  /* ---------- Панель комірок ---------- */
+  #bar { grid-area: bar; display: flex; align-items: center; justify-content: center; background: #2b1f17; }
+  .hotbar { display: flex; gap: 8px; }
+  .cell { width: 196px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .cell .num { font-size: 30px; font-weight: 900; color: var(--muted); line-height: 1; text-shadow: 2px 2px 0 var(--edge); }
+  .slot {
+    width: 168px; height: 168px; position: relative; cursor: pointer;
+    background: var(--slot);
+    border: 6px solid #4a3220;
+    box-shadow: inset 6px 6px 0 #fffaf0, inset -6px -6px 0 #cdb68b;
+  }
+  .slot:hover { background: #fff6dd; }
+  .slot .icon { position: absolute; left: 50%; top: 14px; width: 96px; height: 96px; margin-left: -48px; }
+  .slot .count {
+    position: absolute; right: 10px; bottom: 2px;
+    font-size: 48px; font-weight: 900; line-height: 1; color: #24160c;
+    text-shadow: 3px 3px 0 #fff, -1px -1px 0 #fff;
+  }
+  .cell.is-full .slot {
+    border-color: #c98a00;
+    box-shadow: 0 0 0 5px var(--gold), inset 6px 6px 0 #fff6c8, inset -6px -6px 0 #e6c45a;
+    background: #fff1b8;
+  }
+  .full-label {
+    font-size: 24px; font-weight: 900; color: #2a1a0e; background: var(--gold);
+    border: 3px solid var(--edge); padding: 0 6px; line-height: 1.3; white-space: nowrap;
+    visibility: hidden; margin-top: 4px;
+  }
+  .cell.is-full .full-label { visibility: visible; }
+  .fall { position: absolute; left: 50%; top: 40px; width: 44px; height: 44px; margin-left: -22px; pointer-events: none; animation: fall .35s ease-in forwards; }
+
+  /* ---------- Іконки ---------- */
+  svg.px { width: 100%; height: 100%; display: block; shape-rendering: crispEdges; }
+
+  /* ---------- Предмет у руці ---------- */
+  .hand {
+    position: fixed; left: 0; top: 0; z-index: 50; pointer-events: none;
+    transform-origin: 0 0;
+  }
+  .hand .h-inner { position: relative; width: 84px; height: 84px; filter: drop-shadow(4px 6px 0 rgba(0,0,0,.45)); }
+  .hand .h-count {
+    position: absolute; right: -14px; bottom: -10px; font-size: 40px; font-weight: 900; color: #fff;
+    text-shadow: 3px 3px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000;
+  }
+
+  /* ---------- Тост ---------- */
+  .toast {
+    position: absolute; left: 50%; bottom: 300px; transform: translateX(-50%);
+    background: #fff4dc; color: #2a1a0e; border: 5px solid var(--edge);
+    box-shadow: 6px 6px 0 rgba(0,0,0,.45);
+    font-size: 30px; font-weight: 900; padding: 12px 26px; z-index: 40; white-space: nowrap;
+    pointer-events: none; opacity: 0; transition: opacity .25s;
+  }
+  .toast.show { opacity: 1; }
+  .toast.warn { background: #ffe1d8; border-color: #8a2a12; }
+
+  /* ---------- Загальні блоки центру ---------- */
+  .card {
+    background: #fff4dc; color: #2a1a0e; border: 4px solid var(--edge);
+    box-shadow: inset -5px -5px 0 #e3cfa3; padding: 14px 22px;
+  }
+  .tip { font-size: 26px; font-weight: 700; color: var(--muted); text-align: center; }
+  .cheat {
+    margin-top: auto; display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;
+    font-size: 24px; font-weight: 800; color: var(--text);
+  }
+  .kbd {
+    display: inline-block; font-weight: 900; padding: 0 10px; border: 3px solid var(--edge);
+    color: #2a1a0e; line-height: 1.3; margin-right: 6px;
+  }
+  .kbd.l { background: var(--accent); }
+  .kbd.r { background: var(--teal); }
+  .kbd.s { background: var(--gold); }
+
+  /* Рівень 1 */
+  .l1 { display: flex; flex-direction: column; gap: 22px; align-items: center; justify-content: center; height: 100%; }
+  .def-card { font-size: 40px; font-weight: 900; text-align: center; line-height: 1.25; max-width: 900px; }
+  .def-card b { color: #c2410c; }
+  .l1-row { display: flex; align-items: center; gap: 26px; }
+  .l1-icon { width: 120px; height: 120px; }
+  .l1-total { font-size: 32px; font-weight: 800; }
+  .l1-total b { font-size: 44px; color: var(--gold); }
+  .callout {
+    font-size: 30px; font-weight: 900; background: var(--gold); color: #2a1a0e;
+    border: 4px solid var(--edge); padding: 10px 22px; text-align: center; animation: fadeUp .35s ease-out;
+  }
+
+  /* Рівень 2 */
+  .l2 { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; height: 100%; }
+  .l2-step { font-size: 26px; font-weight: 800; color: var(--muted); }
+  .l2-main { display: flex; align-items: center; gap: 40px; }
+  .l2-icon { width: 180px; height: 180px; background: var(--slot); border: 6px solid #4a3220; padding: 20px; box-shadow: inset 6px 6px 0 #fffaf0, inset -6px -6px 0 #cdb68b; }
+  .l2-name { font-size: 44px; font-weight: 900; }
+  .l2-num { font-size: 120px; font-weight: 900; color: var(--gold); line-height: 1; text-shadow: 5px 5px 0 var(--edge); }
+  .l2-expl { font-size: 32px; font-weight: 800; text-align: center; max-width: 900px; }
+  .l2-sum { display: flex; gap: 24px; }
+  .l2-sum .sc { width: 240px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .l2-sum .sc .ic { width: 100px; height: 100px; }
+  .l2-sum .sc .nm { font-size: 30px; font-weight: 900; }
+  .l2-sum .sc .nb { font-size: 64px; font-weight: 900; color: #c2410c; line-height: 1; }
+
+  /* Рівень 3 */
+  .l3 { display: flex; flex-direction: column; gap: 12px; height: 100%; }
+  .l3-top { display: flex; gap: 22px; align-items: stretch; }
+  .l3-task { flex: 1; display: flex; align-items: center; gap: 20px; }
+  .l3-task .ic { width: 96px; height: 96px; }
+  .l3-top .card { padding: 8px 22px; }
+  .l3-n { font-size: 84px; font-weight: 900; color: #c2410c; line-height: 1; }
+  .l3-unit { font-size: 30px; font-weight: 800; line-height: 1.15; }
+  .l3-guess { width: 380px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .l3-guess .lbl { font-size: 26px; font-weight: 900; }
+  .stepper { display: flex; align-items: center; gap: 14px; }
+  .stepper .btn { font-size: 40px; width: 64px; height: 64px; padding: 0; }
+  .stepper .g { font-size: 68px; font-weight: 900; min-width: 90px; text-align: center; line-height: 1; }
+  .l3-guess .lbl2 { font-size: 26px; font-weight: 800; }
+  .l3-actions { display: flex; gap: 18px; justify-content: center; }
+  .l3-result { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; text-align: center; }
+  .eq { font-size: 54px; font-weight: 900; line-height: 1.1; text-shadow: 4px 4px 0 var(--edge); }
+  .eq .arrow { color: var(--gold); }
+  .eq-sub { font-size: 30px; font-weight: 800; color: var(--muted); }
+
+  /* Рівень 4 */
+  .l4 { display: flex; flex-direction: column; gap: 18px; height: 100%; }
+  .l4-top { display: flex; gap: 26px; align-items: center; }
+  .mouse { width: 140px; height: 190px; flex: none; }
+  .rules { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+  .rule { font-size: 27px; font-weight: 800; white-space: nowrap; }
+  .chips { display: flex; gap: 16px; justify-content: center; }
+  .chip { display: flex; align-items: center; gap: 10px; background: #2a1e16; border: 4px solid var(--edge); padding: 6px 14px; font-size: 26px; font-weight: 800; }
+  .chip .ic { width: 48px; height: 48px; }
+  .chip.done { background: #3f5a22; }
+
+  /* Рівень 5 */
+  .l5 { display: flex; gap: 22px; height: 100%; }
+  .l5-left { width: 470px; display: flex; flex-direction: column; gap: 10px; }
+  .l5-right { flex: 1; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .l5-head { font-size: 30px; font-weight: 900; color: var(--gold); text-shadow: 3px 3px 0 var(--edge); }
+  .need { display: flex; align-items: center; gap: 14px; background: #2a1e16; border: 4px solid var(--edge); padding: 6px 12px; }
+  .need .ic { width: 50px; height: 50px; flex: none; }
+  .need .nl { font-size: 28px; font-weight: 900; flex: 1; }
+  .need .np { font-size: 24px; font-weight: 800; color: var(--muted); text-align: right; }
+  .need.ok { background: #3f5a22; }
+  .need.ok .np { color: #e4ffc9; }
+  .need.over { background: #5e3a22; }
+  .vote { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 26px; font-weight: 900; }
+  .vote .btn { font-size: 24px; padding: 6px 14px; }
+  .vote .btn.sel { background: var(--gold); outline: 4px solid #fff; outline-offset: -8px; }
+  .result { flex: 1; background: #fff4dc; color: #2a1a0e; border: 4px solid var(--edge); padding: 10px 16px; display: flex; flex-direction: column; gap: 6px; overflow: hidden; }
+  .result .rl { font-size: 24px; font-weight: 800; line-height: 1.25; }
+  .result .rl.ok::before { content: "✔ "; color: #2f7d12; }
+  .result .rl.todo::before { content: "● "; color: #c2410c; }
+  .result .rl.big { font-size: 32px; font-weight: 900; color: #2f7d12; }
+  .result .rl.info { color: #4a3a2a; }
+  .row-btns { display: flex; gap: 12px; flex-wrap: wrap; }
+  .cheat5 { margin-top: auto; display: flex; flex-direction: column; gap: 4px; font-size: 24px; font-weight: 800; }
+  .need { padding: 4px 12px; }
+
+  /* ---------- Фінал ---------- */
+  .final {
+    position: absolute; inset: 0; z-index: 60;
+    background: rgba(20,13,9,.92);
+    display: flex; align-items: center; justify-content: center;
+    animation: fadeIn .4s ease-out;
+  }
+  .final-card {
+    width: 1500px; background: #fff4dc; color: #2a1a0e; border: 6px solid var(--edge);
+    box-shadow: 12px 12px 0 rgba(0,0,0,.5), inset -8px -8px 0 #e3cfa3;
+    padding: 34px 48px; display: flex; flex-direction: column; align-items: center; gap: 22px;
+  }
+  .final-top { display: flex; align-items: center; gap: 34px; }
+  .final-fire { width: 150px; height: 150px; }
+  .final-title { font-size: 66px; font-weight: 900; line-height: 1.05; color: #c2410c; }
+  .final-sub { font-size: 34px; font-weight: 800; margin-top: 8px; }
+  .final-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; width: 100%; }
+  .fcard { background: #2a1e16; color: var(--text); border: 4px solid var(--edge); padding: 16px 18px; }
+  .fcard h3 { font-size: 30px; color: var(--gold); margin-bottom: 8px; }
+  .fcard p { font-size: 26px; font-weight: 700; line-height: 1.3; }
+  .final-btns { display: flex; gap: 18px; }
+
+  /* ---------- Анімації ---------- */
+  @keyframes drop { 0% { transform: translateY(-70px); opacity: 0; } 60% { transform: translateY(6px); opacity: 1; } 100% { transform: translateY(0); } }
+  @keyframes pop { 0% { transform: scale(1); } 40% { transform: scale(1.07); } 100% { transform: scale(1); } }
+  @keyframes shake { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-12px); } 40% { transform: translateX(12px); } 60% { transform: translateX(-8px); } 80% { transform: translateX(8px); } }
+  @keyframes fall { 0% { transform: translateY(-170px); opacity: 0; } 25% { opacity: 1; } 100% { transform: translateY(0); opacity: 0; } }
+  @keyframes fadeUp { from { transform: translateY(10px); opacity: 0; } to { transform: none; opacity: 1; } }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .drop { animation: drop .35s ease-out; }
+  .pop { animation: pop .4s ease-out; }
+  .shake { animation: shake .45s ease-in-out; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <header id="top" class="panel">
+    <div class="brand">
+      <span class="brand-icon" id="brandIcon"></span>
+      <div><div class="brand-name">СТАК-МАЙСТЕР</div><div class="brand-sub">Академія пригод</div></div>
+    </div>
+    <div class="level-info"><span class="lvl-badge" id="lvlBadge"></span><span class="lvl-title" id="lvlTitle"></span></div>
+    <div class="dots" id="dots"></div>
+    <div class="nav">
+      <button class="btn btn-dark" id="btnPrev">← Назад</button>
+      <button class="btn btn-dark" id="btnReset">⟲ Скинути</button>
+      <button class="btn" id="btnNext">Далі →</button>
+    </div>
+  </header>
+
+  <section id="qbar" class="panel">
+    <div class="q-label">Питання до класу</div>
+    <div class="q-body">
+      <div class="q-text" id="qText"></div>
+      <div class="q-extra">
+        <div id="qHint" class="q-hint hidden"></div>
+        <div id="qAnswer" class="q-answer hidden"></div>
+      </div>
+    </div>
+    <div class="q-btns">
+      <button class="btn btn-teal" id="btnHint">Підказка</button>
+      <button class="btn btn-green" id="btnAnswer">Показати відповідь</button>
+    </div>
+  </section>
+
+  <aside id="chest" class="panel">
+    <h2>Скриня Академії</h2>
+    <div class="chest-grid" id="chestGrid"></div>
+  </aside>
+
+  <main id="center" class="panel"></main>
+
+  <aside id="log" class="panel">
+    <h2>Журнал дій</h2>
+    <div class="hand-box" id="handBox"></div>
+    <ol id="logList"></ol>
+  </aside>
+
+  <footer id="bar" class="panel"><div class="hotbar" id="hotbar"></div></footer>
+
+  <div id="toast" class="toast"></div>
+  <div id="final" class="final hidden"></div>
+</div>
+<div id="hand" class="hand hidden"><div class="h-inner"><div id="handIcon" style="width:100%;height:100%"></div><div class="h-count" id="handCount"></div></div></div>
+
+<script>
+"use strict";
+/* =========================================================
+   ПРЕДМЕТИ
+   ========================================================= */
+const ITEMS = {
+  stone: { name: "Камінь",  gen: "каменю", dat: "каменю",  max: 64 },
+  wood:  { name: "Дерево",  gen: "дерева", dat: "дереву",  max: 64 },
+  glass: { name: "Скло",    gen: "скла",   dat: "склу",    max: 64 },
+  pearl: { name: "Перлина", gen: "перлин", dat: "перлині", max: 16 },
+  sword: { name: "Меч",     gen: "мечів",  dat: "мечу",    max: 1  },
+  apple: { name: "Яблуко",  gen: "яблук",  dat: "яблуку",  max: 64 }
+};
+const ORDER = ["stone", "wood", "glass", "pearl", "sword", "apple"];
+
+/* ---------- Піксельні малюнки (власні, 12×12) ---------- */
+function rng(seed) { return () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; }; }
+function genBlock(seed, fn) {
+  const r = rng(seed), rows = [];
+  for (let y = 0; y < 12; y++) { let s = ""; for (let x = 0; x < 12; x++) s += fn(x, y, r()); rows.push(s); }
+  return rows;
+}
+const ART = {
+  stone: {
+    rows: genBlock(7, (x, y, v) => (x === 0 || y === 0) ? "L" : (x === 11 || y === 11) ? "D" : v < .16 ? "b" : v < .30 ? "c" : "a"),
+    pal: { a: "#8e8e8e", b: "#6a6a6a", c: "#a9a9a9", L: "#c8c8c8", D: "#4c4c4c" }
+  },
+  wood: {
+    rows: genBlock(3, (x, y, v) => (x === 0 || y === 0) ? "L" : (x === 11 || y === 11) ? "D" :
+      (y === 4 || y === 8) ? "s" : ((y < 4 && x === 5) || (y > 4 && y < 8 && x === 8) || (y > 8 && x === 3)) ? "s" :
+      v < .15 ? "b" : v < .27 ? "c" : "a"),
+    pal: { a: "#bb854b", b: "#a06c38", c: "#d29c5d", L: "#e6b676", D: "#6a4220", s: "#7d4f25" }
+  },
+  glass: {
+    rows: [
+      "ffffffffffff",
+      "fiiiiiiiiiif",
+      "fiwwiiiiiiif",
+      "fiwiiiiiiiif",
+      "fiiiiiiiiiif",
+      "fiiiiiwiiiif",
+      "fiiiiwiiiiif",
+      "fiiiwiiiiiif",
+      "fiiiiiiiiiif",
+      "fiiiiiiiiwif",
+      "fiiiiiiiwwif",
+      "ffffffffffff"
+    ],
+    pal: { f: "#3d9cc6", i: "rgba(196,236,252,.6)", w: "#ffffff" }
+  },
+  pearl: {
+    rows: [
+      "....oooo....",
+      "..oowwwwoo..",
+      ".owwWWwwwwo.",
+      ".owWWwwwwpo.",
+      "owwWwwwwwppo",
+      "owwwwwwwwppo",
+      "owwwwwwwpppo",
+      "owwwwwwppppo",
+      ".owwwwppppo.",
+      ".oowpppppoo.",
+      "..oooooooo..",
+      "....oooo...."
+    ],
+    pal: { o: "#6b58a6", w: "#efe9ff", W: "#ffffff", p: "#c3b2f0" }
+  },
+  sword: {
+    rows: [
+      "..........kk",
+      ".........kWk",
+      "........kWsk",
+      ".......kWsk.",
+      "......kWsk..",
+      "..g..kWsk...",
+      "...gkWsk....",
+      "....gsk.....",
+      "...bbg......",
+      "..bb..g.....",
+      ".bb.........",
+      "gg.........."
+    ],
+    pal: { k: "#1f2a33", W: "#f2f6f8", s: "#9fb2bf", g: "#e8b830", b: "#7a4a22" }
+  },
+  apple: {
+    rows: [
+      "......s.....",
+      "......sLL...",
+      "..rrr.srrr..",
+      ".rrrrrrrrrr.",
+      ".rHHrrrrrrr.",
+      ".rHrrrrrrrr.",
+      ".rrrrrrrrdr.",
+      ".rrrrrrrrdr.",
+      ".rrrrrrrddr.",
+      "..rrrrrddr..",
+      "...rrr.rrr..",
+      "............"
+    ],
+    pal: { r: "#e03a2f", H: "#ff9a8a", d: "#a8201a", s: "#5a3a1a", L: "#4caf3a" }
+  },
+  fire: {
+    rows: [
+      ".....f......",
+      "....ff...f..",
+      "....fyf..ff.",
+      "...fyyf.fyf.",
+      "..fyyyyffyf.",
+      "..fyywyyyyf.",
+      ".fyywwwyyyf.",
+      ".fyyywwyyff.",
+      "..ffyyyyff..",
+      ".lLlllllLl..",
+      "LllLLllLLllL",
+      ".LL......LL."
+    ],
+    pal: { f: "#ff6a1a", y: "#ffc53a", w: "#fff3b0", l: "#9a6232", L: "#5a3416" }
+  }
+};
+function pixelSVG(art) {
+  const rows = art.rows, h = rows.length, w = rows[0].length;
+  let r = "";
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const c = rows[y][x];
+    if (c !== "." && art.pal[c]) r += `<rect x="${x}" y="${y}" width="1" height="1" fill="${art.pal[c]}"/>`;
+  }
+  return `<svg class="px" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">${r}</svg>`;
+}
+const ICON = {};
+Object.keys(ART).forEach(k => ICON[k] = pixelSVG(ART[k]));
+
+const MOUSE_SVG = `<svg class="mouse" viewBox="0 0 70 96" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
+  <rect x="4" y="4" width="62" height="88" fill="#140d09"/>
+  <rect x="8" y="8" width="26" height="36" fill="#ff9f1c"/>
+  <rect x="36" y="8" width="26" height="36" fill="#3cc9bb"/>
+  <rect x="8" y="46" width="54" height="42" fill="#fff4dc"/>
+  <rect x="32" y="16" width="6" height="14" fill="#140d09"/>
+  <text x="21" y="32" font-size="14" font-weight="900" text-anchor="middle" fill="#2a1a0e" font-family="Trebuchet MS, Arial">Л</text>
+  <text x="49" y="32" font-size="14" font-weight="900" text-anchor="middle" fill="#2a1a0e" font-family="Trebuchet MS, Arial">П</text>
+</svg>`;
+
+/* ---------- Допоміжне ---------- */
+const $ = id => document.getElementById(id);
+const wait = ms => new Promise(r => setTimeout(r, ms));
+function plural(n, one, few, many) {
+  const a = n % 10, b = n % 100;
+  if (a === 1 && b !== 11) return one;
+  if (a >= 2 && a <= 4 && (b < 12 || b > 14)) return few;
+  return many;
+}
+const cellsWord = n => plural(n, "комірка", "комірки", "комірок");
+const blocksWord = n => plural(n, "блок", "блоки", "блоків");
+function amountLabel(id, n) {
+  switch (id) {
+    case "pearl": return `${n} ${plural(n, "перлина", "перлини", "перлин")}`;
+    case "sword": return `${n} ${plural(n, "меч", "мечі", "мечів")}`;
+    case "apple": return `${n} ${plural(n, "яблуко", "яблука", "яблук")}`;
+    default: return `${n} ${ITEMS[id].gen}`;
+  }
+}
+function fx(el, cls) {
+  el.classList.remove(cls);
+  void el.offsetWidth;
+  el.classList.add(cls);
+  const h = e => { if (e.target !== el) return; el.classList.remove(cls); el.removeEventListener("animationend", h); };
+  el.addEventListener("animationend", h);
+}
+
+/* =========================================================
+   СТАН
+   ========================================================= */
+const S = {
+  level: 1,
+  slots: Array(9).fill(null),
+  hand: null,
+  log: [],
+  q: null, answerShown: false, hintShown: false,
+  busy: false, run: 0,
+  lv: {},
+  l3idx: 0, l5m: 0, l5used: 7,
+  hidden: new Set()      // предмети, чий розмір стаку прихований у Скрині
+};
+
+/* =========================================================
+   МАСШТАБ
+   ========================================================= */
+const stage = $("stage"), handEl = $("hand");
+let scale = 1, mx = -500, my = -500;
+function fit() {
+  scale = Math.min(innerWidth / 1920, innerHeight / 1080);
+  const ox = (innerWidth - 1920 * scale) / 2, oy = (innerHeight - 1080 * scale) / 2;
+  stage.style.transform = `translate(${ox}px, ${oy}px) scale(${scale})`;
+  moveHand();
+}
+function moveHand() { handEl.style.transform = `translate(${mx + 14}px, ${my + 14}px) scale(${scale})`; }
+addEventListener("resize", fit);
+addEventListener("mousemove", e => { mx = e.clientX; my = e.clientY; moveHand(); });
+
+/* =========================================================
+   ПОБУДОВА ІНТЕРФЕЙСУ
+   ========================================================= */
+$("brandIcon").innerHTML = ICON.stone;
+
+const chestEls = {};
+ORDER.forEach(id => {
+  const d = document.createElement("div");
+  d.className = "chest-item";
+  d.innerHTML = `<div class="ci-icon">${ICON[id]}</div><div class="ci-name">${ITEMS[id].name}</div><div class="ci-max"></div>`;
+  d.addEventListener("mousedown", e => onChest(id, e));
+  $("chestGrid").appendChild(d);
+  chestEls[id] = d;
+});
+
+const slotEls = [];
+for (let i = 0; i < 9; i++) {
+  const cell = document.createElement("div");
+  cell.className = "cell";
+  cell.innerHTML = `<div class="num">${i + 1}</div><div class="slot"><div class="icon"></div><div class="count"></div></div><div class="full-label">ПОВНИЙ СТАК</div>`;
+  const slot = cell.querySelector(".slot");
+  slot.addEventListener("mousedown", e => onSlot(i, e));
+  $("hotbar").appendChild(cell);
+  slotEls.push({ cell, slot, icon: slot.querySelector(".icon"), count: slot.querySelector(".count"), id: null });
+}
+
+for (let n = 1; n <= 5; n++) {
+  const b = document.createElement("button");
+  b.className = "dot"; b.textContent = n; b.title = "Рівень " + n;
+  b.addEventListener("click", () => goLevel(n));
+  $("dots").appendChild(b);
+}
+
+document.addEventListener("contextmenu", e => e.preventDefault());
+
+/* =========================================================
+   РЕНДЕР
+   ========================================================= */
+function renderChest() {
+  ORDER.forEach(id => {
+    const el = chestEls[id];
+    el.querySelector(".ci-max").textContent = S.hidden.has(id) ? "Стак: ?" : `Стак: ${ITEMS[id].max}`;
+    el.classList.toggle("in-hand", !!S.hand && S.hand.id === id);
+  });
+}
+function renderSlot(i, effect) {
+  const s = S.slots[i], el = slotEls[i];
+  const id = s ? s.id : null;
+  if (el.id !== id) { el.icon.innerHTML = id ? ICON[id] : ""; el.id = id; }
+  el.count.textContent = s ? s.n : "";
+  const full = !!s && s.n >= ITEMS[s.id].max;
+  const was = el.cell.classList.contains("is-full");
+  el.cell.classList.toggle("is-full", full);
+  if (full && !was) fx(el.slot, "pop");
+  if (effect && s) fx(el.icon, effect);
+}
+function renderSlots() { for (let i = 0; i < 9; i++) renderSlot(i); }
+function renderHand() {
+  const h = S.hand;
+  handEl.classList.toggle("hidden", !h);
+  if (h) { $("handIcon").innerHTML = ICON[h.id]; $("handCount").textContent = h.n; }
+  $("handBox").innerHTML = h
+    ? `<span>У руці:</span><span class="hb-icon">${ICON[h.id]}</span><span>${ITEMS[h.id].name} × ${h.n}</span>`
+    : `<span>У руці:</span><span class="hb-empty">порожньо</span>`;
+  renderChest();
+}
+function renderLog() {
+  $("logList").innerHTML = S.log.map((e, k) =>
+    `<li class="${k === 0 ? "newest " : ""}${e.kind}"><div>${e.a}</div>${e.note ? `<div class="note">${e.note}</div>` : ""}</li>`
+  ).join("");
+}
+function log(a, note, kind = "ok") {
+  S.log.unshift({ a, note, kind });
+  S.log.length = Math.min(S.log.length, 5);
+  renderLog();
+}
+function renderQ() {
+  const q = S.q;
+  $("qText").textContent = q ? q.text : "";
+  const hint = $("qHint"), ans = $("qAnswer");
+  hint.classList.toggle("hidden", !(q && q.hint && S.hintShown) || S.answerShown);
+  hint.textContent = q && q.hint ? "Підказка: " + q.hint : "";
+  ans.classList.toggle("hidden", !(q && q.answer && S.answerShown));
+  ans.textContent = q && q.answer ? "Відповідь: " + q.answer : "";
+  $("btnHint").disabled = !(q && q.hint) || S.hintShown;
+  $("btnAnswer").disabled = !(q && q.answer) || S.answerShown || S.busy;
+  $("btnAnswer").textContent = S.answerShown ? "Відповідь показано" : "Показати відповідь";
+  // якщо текст не вміщується — трохи зменшуємо шрифт питання (не менше 26px)
+  const t = $("qText"), body = document.querySelector(".q-body");
+  let fs = 36; t.style.fontSize = fs + "px";
+  while (body.scrollHeight > body.clientHeight + 1 && fs > 26) { fs -= 2; t.style.fontSize = fs + "px"; }
+}
+function setQ(text, answer, hint, onReveal) {
+  if (S.q && S.q.text === text && S.q.answer === answer) { S.q.onReveal = onReveal; S.q.hint = hint; renderQ(); return; }
+  S.q = { text, answer, hint, onReveal };
+  S.answerShown = false; S.hintShown = false;
+  renderQ();
+}
+function showAnswerText() { S.answerShown = true; renderQ(); }
+function revealAnswer() {
+  if (!S.q || S.answerShown || S.busy) return;
+  S.answerShown = true;
+  renderQ();
+  if (S.q.onReveal) S.q.onReveal();
+}
+function renderTop() {
+  const L = LEVELS[S.level];
+  $("lvlBadge").textContent = `Рівень ${S.level} з 5`;
+  $("lvlTitle").textContent = `«${L.title}»`;
+  [...$("dots").children].forEach((d, k) => d.classList.toggle("on", k + 1 === S.level));
+  $("btnPrev").disabled = S.level === 1;
+  $("btnNext").textContent = S.level === 5 ? "Фінал →" : "Далі →";
+}
+function renderCenter() { $("center").innerHTML = LEVELS[S.level].render(); renderQ(); }
+
+let toastTimer = null;
+function toast(text, kind = "warn") {
+  const t = $("toast");
+  t.textContent = text;
+  t.className = "toast show " + kind;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 3200);
+}
+function clearSlots() { S.slots = Array(9).fill(null); renderSlots(); }
+function spawnFall(i, id) {
+  const f = document.createElement("div");
+  f.className = "fall";
+  f.innerHTML = ICON[id];
+  slotEls[i].slot.appendChild(f);
+  f.addEventListener("animationend", () => f.remove());
+}
+
+/* =========================================================
+   КЕРУВАННЯ МИШЕЮ (як у грі)
+   ========================================================= */
+function interactive() { return !!LEVELS[S.level].interactive && $("final").classList.contains("hidden"); }
+function notInteractive() { toast("На цьому рівні працюють кнопки в центрі екрана", "info"); }
+function afterAction(act) { const L = LEVELS[S.level]; if (L.after) L.after(act); }
+
+function onChest(id, e) {
+  e.preventDefault();
+  if (e.button !== 0 && e.button !== 2) return;
+  if (!interactive()) return notInteractive();
+  if (S.busy) return;
+  const it = ITEMS[id], tile = chestEls[id];
+
+  if (e.button === 0 && e.shiftKey) {
+    const i = S.slots.findIndex(s => !s);
+    if (i < 0) {
+      fx($("hotbar"), "shake");
+      log(`Shift + ЛКМ по ${it.dat} → немає місця`, "Усі 9 комірок зайняті. Вільної комірки немає.", "warn");
+      toast("Усі 9 комірок зайняті!");
+      afterAction({ type: "nospace" });
+      return;
+    }
+    S.slots[i] = { id, n: it.max };
+    renderSlot(i, "drop");
+    log(`Shift + ЛКМ по ${it.dat} → ${it.max} у комірку ${i + 1}`, "Shift + ЛКМ кладе цілий стак одразу в першу вільну комірку.");
+    afterAction({ type: "shift", i });
+    return;
+  }
+
+  if (e.button === 0) {
+    if (S.hand) {
+      const h = S.hand; S.hand = null;
+      log(`ЛКМ по Скрині → прибрано з руки ${h.n}`, "Предмет повернувся в Скриню. Рука порожня.", "info");
+    } else {
+      S.hand = { id, n: it.max };
+      log(`ЛКМ по ${it.dat} → взято ${it.max}`,
+        it.max === 1 ? "Меч не складається в стак, тому в руці лише 1." : `ЛКМ бере цілий стак — ${it.max}.`);
+    }
+  } else {
+    if (!S.hand) {
+      S.hand = { id, n: 1 };
+      log(`ПКМ по ${it.dat} → взято 1`, "ПКМ бере лише 1 предмет.");
+    } else if (S.hand.id === id) {
+      if (S.hand.n < it.max) {
+        S.hand.n++;
+        log(`ПКМ по ${it.dat} → у руці ${S.hand.n}`, "ПКМ додає в руку ще 1 предмет.");
+      } else {
+        fx(tile, "shake");
+        log(`ПКМ по ${it.dat} → у руці вже повний стак`, `Більше ніж ${it.max} в одній руці не вміщується.`, "warn");
+        toast(`У руці вже повний стак: ${it.max}`);
+      }
+    } else {
+      fx(tile, "shake");
+      log(`ПКМ по ${it.dat} → не вийшло`, "У руці інший предмет. Різні предмети не складаються разом.", "warn");
+      toast("Різні предмети не складаються разом");
+    }
+  }
+  renderHand();
+  afterAction({ type: "chest" });
+}
+
+function slotFail(i, a, note) {
+  fx(slotEls[i].slot, "shake");
+  log(a, note, "warn");
+  toast(note);
+}
+
+function onSlot(i, e) {
+  e.preventDefault();
+  if (e.button !== 0 && e.button !== 2) return;
+  if (!interactive()) return notInteractive();
+  if (S.busy) return;
+  const B = e.button === 2 ? "ПКМ" : (e.shiftKey ? "Shift + ЛКМ" : "ЛКМ");
+  const s = S.slots[i], h = S.hand, N = i + 1;
+  let act = null;
+
+  if (e.button === 0) {
+    if (h && !s) {
+      S.slots[i] = h; S.hand = null;
+      log(`${B} по комірці ${N} → покладено ${h.n}`, "ЛКМ кладе в комірку все, що в руці.");
+      renderSlot(i, "drop"); act = { type: "place", i };
+    } else if (h && s && s.id === h.id) {
+      const max = ITEMS[s.id].max, space = max - s.n;
+      if (space <= 0) {
+        slotFail(i, `${B} по комірці ${N} → вона вже повна`, `Тут уже повний стак: ${max}. Більше не влізе.`);
+      } else {
+        const mv = Math.min(space, h.n);
+        s.n += mv; h.n -= mv;
+        if (h.n === 0) S.hand = null;
+        log(`${B} по комірці ${N} → докладено ${mv}`,
+          S.hand ? `Комірка повна (${max}). У руці лишилось ${h.n}.` : `Тепер у комірці ${s.n}.`);
+        renderSlot(i, "drop"); act = { type: "merge", i };
+      }
+    } else if (h && s) {
+      slotFail(i, `${B} по комірці ${N} → не вийшло`, "Різні предмети не складаються в одну комірку.");
+    } else if (s) {
+      S.hand = { id: s.id, n: s.n }; S.slots[i] = null;
+      log(`${B} по комірці ${N} → взято ${s.n}`, "ЛКМ бере з комірки цілий стак.");
+      renderSlot(i); act = { type: "pick", i };
+    } else {
+      log(`${B} по комірці ${N} → тут порожньо`, "У руці нічого немає. Спершу візьміть предмет зі Скрині.", "info");
+    }
+  } else {
+    if (!h && s) {
+      if (s.n === 1) {
+        S.hand = { id: s.id, n: 1 }; S.slots[i] = null;
+        log(`ПКМ по комірці ${N} → взято 1`, "Тут лише 1 предмет — ділити нічого.");
+        act = { type: "pick", i };
+      } else {
+        const take = Math.ceil(s.n / 2), keep = s.n - take;
+        S.hand = { id: s.id, n: take }; s.n = keep;
+        log(`ПКМ по комірці ${N} → розділено: ${take} і ${keep}`, `У руці ${take}, у комірці ${keep}. ПКМ ділить стак навпіл.`);
+        act = { type: "split", i };
+      }
+      renderSlot(i);
+    } else if (h && !s) {
+      S.slots[i] = { id: h.id, n: 1 }; h.n--;
+      if (!h.n) S.hand = null;
+      log(`ПКМ по комірці ${N} → покладено 1`, "ПКМ з предметом у руці кладе лише 1.");
+      renderSlot(i, "drop"); act = { type: "place1", i };
+    } else if (h && s && s.id === h.id) {
+      const max = ITEMS[s.id].max;
+      if (s.n >= max) {
+        slotFail(i, `ПКМ по комірці ${N} → вона вже повна`, `Тут уже повний стак: ${max}. Більше не влізе.`);
+      } else {
+        s.n++; h.n--;
+        if (!h.n) S.hand = null;
+        log(`ПКМ по комірці ${N} → докладено 1`, `Тепер у комірці ${s.n}.`);
+        renderSlot(i, "drop"); act = { type: "place1", i };
+      }
+    } else if (h && s) {
+      slotFail(i, `ПКМ по комірці ${N} → не вийшло`, "Різні предмети не складаються в одну комірку.");
+    } else {
+      log(`ПКМ по комірці ${N} → тут порожньо`, "Ділити нічого: комірка порожня.", "info");
+    }
+  }
+  renderHand();
+  afterAction(act);
+}
+
+/* =========================================================
+   РІВНІ
+   ========================================================= */
+const LEVELS = {};
+
+/* ---------- Рівень 1: Що таке стак? ---------- */
+LEVELS[1] = {
+  title: "Що таке стак?",
+  interactive: false,
+  init() {
+    S.lv = { phase: "fill", total: 0, lastSlot: 0 };
+    S.hidden = new Set(ORDER);
+    clearSlots();
+    this.updateQ();
+  },
+  updateQ() {
+    const ph = S.lv.phase;
+    if (ph === "fill") {
+      setQ("Скільки каменю поміститься в одну комірку?",
+        "64 блоки. Більше в одну комірку не влізе!",
+        "Додавайте по 10 і стежте за числом у комірці 1.");
+    } else if (ph === "full" || ph === "placed") {
+      setQ("А куди піде 65-й блок? Як думаєте?",
+        "У комірку 2! Комірка 1 повна — новий стак починається в наступній.",
+        "Що робимо, коли склянка вже повна води?",
+        () => this.place65());
+    } else {
+      setQ("Скільки каменю поміститься у 2 комірки?",
+        "64 + 64 = 128 блоків.",
+        "Кожна комірка — це ще один стак по 64.");
+    }
+  },
+  render() {
+    const ph = S.lv.phase;
+    const allFull = S.slots.every(s => s && s.n >= 64);
+    const dis = (S.busy || ph === "full" || allFull) ? "disabled" : "";
+    let call = "";
+    if (ph === "full") call = `<div class="callout">Комірка 1 повна — 64! Стоп. Обговоріть: куди піде 65-й блок?</div>`;
+    else if (ph === "placed") call = `<div class="callout">65-й блок ліг у комірку 2. Можна додавати далі!</div>`;
+    else if (allFull) call = `<div class="callout">Усі 9 комірок повні: 9 стаків по 64!</div>`;
+    return `<div class="l1">
+      <div class="card def-card"><b>Стак</b> — це скільки однакових предметів вміщується в одну комірку.</div>
+      <div class="l1-row">
+        <div class="l1-icon">${ICON.stone}</div>
+        <button class="btn btn-big btn-green" data-act="add" data-k="1" ${dis}>+1 камінь</button>
+        <button class="btn btn-big" data-act="add" data-k="10" ${dis}>+10</button>
+        <button class="btn btn-big btn-gold" data-act="add" data-k="64" ${dis}>+64</button>
+      </div>
+      <div class="l1-total">Усього каменю в рюкзаку: <b>${S.lv.total}</b></div>
+      ${call}
+    </div>`;
+  },
+  act(name, el) { if (name === "add") this.add(+el.dataset.k); },
+  async add(k) {
+    if (S.busy) return;
+    const L = S.lv, token = S.run;
+    if (L.phase === "placed") { L.phase = "more"; this.updateQ(); }
+    S.busy = true; renderCenter();
+    const delay = k === 1 ? 0 : Math.max(14, Math.min(60, 900 / k));
+    let added = 0, stopped = false, last = 0, firstSlot = -1;
+    for (let j = 0; j < k; j++) {
+      const i = S.slots.findIndex(s => !s || s.n < 64);
+      if (i < 0) break;
+      if (firstSlot < 0) firstSlot = i;
+      if (!S.slots[i]) S.slots[i] = { id: "stone", n: 0 };
+      S.slots[i].n++; added++; L.total++; last = i;
+      renderSlot(i, (k === 1 || S.slots[i].n === 1) ? "drop" : null);
+      if (k !== 1 && j % 3 === 0) spawnFall(i, "stone");
+      if (L.phase === "fill" && S.slots[0].n === 64) { stopped = true; break; }
+      if (delay) { await wait(delay); if (token !== S.run) return; }
+    }
+    S.busy = false;
+    const n = S.slots[last] ? S.slots[last].n : 0;
+    const what = k === 1 ? "+1 камінь" : `+${k} каменю`;
+    if (stopped) {
+      L.phase = "full";
+      S.hidden.delete("stone"); renderChest();
+      log(`${what} → комірка 1: 64`, added < k
+        ? `ПОВНИЙ СТАК! Більше не влізло — ${k - added} не додали. Стоп!`
+        : "ПОВНИЙ СТАК! Більше в цю комірку не влізе. Стоп!", "gold");
+      this.updateQ();
+    } else if (added === 0) {
+      log(`${what} → немає місця`, "Усі 9 комірок повні.", "warn");
+    } else {
+      const spread = last !== firstSlot;
+      log(`${what} → у комірці ${last + 1}: ${n}`,
+        spread ? "Комірка заповнилась — решта пішла в наступну."
+          : n >= 64 ? "Це повний стак!" : "Комірка ще не повна — місце є.");
+    }
+    renderCenter();
+  },
+  place65() {
+    S.slots[1] = { id: "stone", n: 1 };
+    S.lv.total = 65; S.lv.phase = "placed";
+    renderSlot(1, "drop");
+    log("65-й блок → комірка 2", "Повна комірка більше не приймає. Новий стак — у наступній комірці.", "gold");
+    renderCenter();
+  }
+};
+
+/* ---------- Рівень 2: Різні стаки ---------- */
+const L2_SEQ = ["stone", "pearl", "sword"];
+const L2_EXPL = {
+  stone: "Блоки складаються в стак по 64.",
+  pearl: "Перлини складаються лише по 16.",
+  sword: "Меч — 1, бо спорядження не складається в стак."
+};
+const L2_HINT = {
+  stone: "Згадайте рівень 1!",
+  pearl: "Перлини рідкісні. Їх уміщується менше, ніж блоків.",
+  sword: "Чи можна тримати два мечі в одній руці?"
+};
+LEVELS[2] = {
+  title: "Різні стаки",
+  interactive: false,
+  init() {
+    S.lv = { step: 0, revealed: false, done: false };
+    S.hidden = new Set(ORDER);
+    clearSlots();
+    this.updateQ();
+  },
+  updateQ() {
+    const L = S.lv;
+    if (L.done) {
+      setQ("Що складається краще: камінь, перлина чи меч?",
+        "Камінь — по 64, перлина — по 16, меч — лише 1.",
+        "Порівняйте числа в комірках 1, 2 і 3.");
+      return;
+    }
+    const id = L2_SEQ[L.step], it = ITEMS[id];
+    setQ(`Скільки ${it.gen} поміститься в одну комірку?`,
+      `${it.max}. ${L2_EXPL[id]}`, L2_HINT[id], () => this.reveal());
+  },
+  render() {
+    const L = S.lv;
+    if (L.done) {
+      return `<div class="l2">
+        <div class="l2-expl">Що ми дізналися:</div>
+        <div class="l2-sum">${L2_SEQ.map(id => `<div class="card sc"><div class="ic">${ICON[id]}</div><div class="nm">${ITEMS[id].name}</div><div class="nb">${ITEMS[id].max}</div></div>`).join("")}</div>
+        <div class="l2-expl">Дерево, скло і яблуко — теж по 64, як камінь.</div>
+        <div class="tip">Розміри стаків тепер видно у Скрині.</div>
+      </div>`;
+    }
+    const id = L2_SEQ[L.step], it = ITEMS[id];
+    const num = L.revealed ? it.max : "?";
+    let bottom;
+    if (S.busy) bottom = `<div class="l2-expl">Рахуємо разом…</div>`;
+    else if (L.revealed) bottom = `<div class="l2-expl">${L2_EXPL[id]}</div>
+      <button class="btn btn-big" data-act="next">${L.step < 2 ? "Наступний предмет →" : "Підсумок →"}</button>`;
+    else bottom = `<div class="tip">Обговоріть разом, потім натисніть «Показати відповідь».</div>`;
+    return `<div class="l2">
+      <div class="l2-step">Предмет ${L.step + 1} з 3</div>
+      <div class="l2-main">
+        <div class="l2-icon">${ICON[id]}</div>
+        <div><div class="l2-name">${it.name}</div><div class="l2-num" id="bigNum">${num}</div></div>
+      </div>
+      ${bottom}
+    </div>`;
+  },
+  async reveal() {
+    const L = S.lv, id = L2_SEQ[L.step], it = ITEMS[id], i = L.step, token = S.run;
+    S.busy = true; renderCenter();
+    const dur = it.max === 64 ? 1600 : it.max === 16 ? 900 : 300;
+    S.slots[i] = { id, n: 0 };
+    for (let c = 1; c <= it.max; c++) {
+      S.slots[i].n = c;
+      renderSlot(i, c === 1 ? "drop" : null);
+      const b = $("bigNum"); if (b) b.textContent = c;
+      await wait(dur / it.max);
+      if (token !== S.run) return;
+    }
+    S.busy = false; L.revealed = true;
+    S.hidden.delete(id); renderChest();
+    log(`${it.name}: стак = ${it.max}`, L2_EXPL[id], "gold");
+    renderCenter();
+  },
+  act(name) {
+    if (name !== "next") return;
+    const L = S.lv;
+    if (L.step < 2) { L.step++; L.revealed = false; }
+    else { L.done = true; S.hidden.clear(); renderChest(); log("Підсумок", "Камінь 64 · Перлина 16 · Меч 1", "gold"); }
+    this.updateQ();
+    renderCenter();
+  }
+};
+
+/* ---------- Рівень 3: Задача табору ---------- */
+const L3_AMOUNTS = [130, 70, 100, 128, 150, 200];
+function stackParts(n, max = 64) { const p = []; while (n > 0) { p.push(Math.min(max, n)); n -= max; } return p; }
+LEVELS[3] = {
+  title: "Задача табору",
+  interactive: false,
+  init() {
+    S.lv = { guess: 1, phase: "ask" };
+    S.hidden = new Set();
+    clearSlots();
+    this.updateQ();
+  },
+  get N() { return L3_AMOUNTS[S.l3idx]; },
+  updateQ() {
+    const N = this.N, p = stackParts(N);
+    setQ(`У нас ${N} блоків каменю. Скільки комірок знадобиться?`,
+      `${p.join(" + ")} = ${N} → ${p.length} ${cellsWord(p.length)}`,
+      "Уявіть, що ми заповнюємо комірки по черзі, як склянки водою.",
+      () => this.check());
+  },
+  render() {
+    const L = S.lv, N = this.N, ask = L.phase === "ask";
+    let res = "";
+    if (L.phase === "ask") {
+      res = `<div class="tip">Обговоріть, впишіть версію класу і натисніть «Перевірити».</div>`;
+    } else {
+      const parts = S.slots.filter(Boolean).map(s => s.n);
+      const sum = parts.reduce((a, b) => a + b, 0);
+      if (L.phase === "run") {
+        res = `<div class="eq">${parts.join(" + ") || "0"}</div><div class="eq-sub">Висипаємо по одному… ${sum} з ${N}</div>`;
+      } else {
+        const c = parts.length, g = L.guess, rest = N % 64;
+        let cmp = g === c
+          ? `Версія класу: ${g}. Перевірка показала те саме — ${c}!`
+          : `Версія класу: ${g}. Перевірка: ${c}. Чому так? Гляньте на останню комірку!`;
+        if (g !== c && rest > 0 && g === c - 1) cmp = `Версія класу: ${g}. А ${rest} ${blocksWord(rest)} теж займають комірку!`;
+        res = `<div class="eq">${parts.join(" + ")} = ${N}</div>
+               <div class="eq"><span class="arrow">→ ${c} ${cellsWord(c)}</span></div>
+               <div class="eq-sub">${cmp}</div>`;
+      }
+    }
+    return `<div class="l3">
+      <div class="l3-top">
+        <div class="card l3-task">
+          <div class="ic">${ICON.stone}</div>
+          <div><div class="l3-n">${N}</div><div class="l3-unit">блоків каменю</div></div>
+        </div>
+        <div class="card l3-guess">
+          <div class="lbl">Відповідь класу</div>
+          <div class="stepper">
+            <button class="btn btn-dark" data-act="minus" ${ask && L.guess > 1 ? "" : "disabled"}>−</button>
+            <div class="g">${L.guess}</div>
+            <button class="btn btn-dark" data-act="plus" ${ask && L.guess < 9 ? "" : "disabled"}>+</button>
+          </div>
+          <div class="lbl2">${cellsWord(L.guess)}</div>
+        </div>
+      </div>
+      <div class="l3-actions">
+        <button class="btn btn-big btn-green" data-act="check" ${ask ? "" : "disabled"}>Перевірити</button>
+        <button class="btn btn-big btn-dark" data-act="new" ${L.phase === "run" ? "disabled" : ""}>Нова задача</button>
+      </div>
+      <div class="l3-result">${res}</div>
+    </div>`;
+  },
+  act(name) {
+    const L = S.lv;
+    if (name === "minus" && L.phase === "ask") { L.guess = Math.max(1, L.guess - 1); renderCenter(); }
+    if (name === "plus" && L.phase === "ask") { L.guess = Math.min(9, L.guess + 1); renderCenter(); }
+    if (name === "check") this.check();
+    if (name === "new" && L.phase !== "run") {
+      S.l3idx = (S.l3idx + 1) % L3_AMOUNTS.length;
+      L.phase = "ask"; L.guess = 1;
+      clearSlots(); this.updateQ();
+      log(`Нова задача: ${this.N} блоків`, "Скільки комірок знадобиться? Обговорюємо!", "info");
+      renderCenter();
+    }
+  },
+  async check() {
+    const L = S.lv;
+    if (L.phase !== "ask") return;
+    const N = this.N, token = S.run;
+    L.phase = "run"; S.busy = true;
+    clearSlots(); renderCenter();
+    log(`Перевіряємо: ${N} блоків`, `Версія класу: ${L.guess}. Висипаємо блоки по одному!`, "info");
+    const msPer = Math.max(8, Math.min(30, 2400 / N));
+    const start = performance.now();
+    let placed = 0;
+    await new Promise(res => {
+      const step = t => {
+        if (token !== S.run) return res();
+        const target = Math.min(N, Math.floor((t - start) / msPer) + 1);
+        const dirty = new Set();
+        while (placed < target) {
+          const i = Math.floor(placed / 64);
+          if (!S.slots[i]) S.slots[i] = { id: "stone", n: 0 };
+          S.slots[i].n++; placed++; dirty.add(i);
+          if (placed % 5 === 1) spawnFall(i, "stone");
+        }
+        dirty.forEach(i => renderSlot(i));
+        const eq = document.querySelector(".l3-result");
+        if (eq) {
+          const parts = S.slots.filter(Boolean).map(s => s.n);
+          eq.innerHTML = `<div class="eq">${parts.join(" + ")}</div><div class="eq-sub">Висипаємо по одному… ${placed} з ${N}</div>`;
+        }
+        if (placed < N) requestAnimationFrame(step); else res();
+      };
+      requestAnimationFrame(step);
+    });
+    if (token !== S.run) return;
+    S.busy = false; L.phase = "done";
+    const p = stackParts(N);
+    showAnswerText();
+    log(`${p.join(" + ")} = ${N}`, `→ ${p.length} ${cellsWord(p.length)}. Заповнювали по черзі!`, "gold");
+    renderCenter();
+  }
+};
+
+/* ---------- Рівень 4: Розділи навпіл ---------- */
+const L4_START = [["stone", 64], ["wood", 32], ["pearl", 16]];
+LEVELS[4] = {
+  title: "Розділи навпіл",
+  interactive: true,
+  init() {
+    S.lv = { split: [false, false, false] };
+    S.hidden = new Set();
+    S.slots = Array(9).fill(null);
+    L4_START.forEach(([id, n], i) => S.slots[i] = { id, n });
+    renderSlots();
+    this.updateQ();
+  },
+  updateQ() {
+    const L = S.lv;
+    if (S.hand) {
+      setQ(`У руці ${S.hand.n}. Яку кнопку натиснути, щоб покласти все в порожню комірку?`,
+        "ЛКМ — кладе все з руки. (ПКМ поклав би лише 1.)",
+        "Ліва кнопка працює з цілим стаком.");
+      return;
+    }
+    const i = [0, 1, 2].find(k => !L.split[k] && S.slots[k] && S.slots[k].n >= 2 && S.slots[k].n % 2 === 0);
+    if (i !== undefined) {
+      const n = S.slots[i].n;
+      setQ(`ПКМ по комірці ${i + 1} (${n}): скільки буде в руці і скільки залишиться?`,
+        `У руці ${n / 2}, у комірці ${n / 2}. Навпіл!`,
+        `Навпіл — це дві рівні купки: ? + ? = ${n}.`);
+    } else {
+      setQ("Як знову зібрати повний стак із двох половинок?",
+        "ЛКМ по половинці — взяти її. Потім ЛКМ по другій половинці — скласти разом.",
+        "ЛКМ бере і кладе цілий стак.");
+    }
+  },
+  render() {
+    const chips = L4_START.map(([id], k) =>
+      `<div class="chip ${S.lv.split[k] ? "done" : ""}"><span class="ic">${ICON[id]}</span>${k + 1}: ${S.lv.split[k] ? "розділено ✔" : "ще ні"}</div>`).join("");
+    return `<div class="l4">
+      <div class="l4-top">
+        ${MOUSE_SVG}
+        <div class="rules">
+          <div class="rule"><span class="kbd r">ПКМ</span> по стаку (рука порожня) → половина в руку</div>
+          <div class="rule"><span class="kbd l">ЛКМ</span> по порожній комірці → покласти все з руки</div>
+          <div class="rule"><span class="kbd l">ЛКМ</span> по такому самому предмету → докласти</div>
+          <div class="rule"><span class="kbd l">ЛКМ</span> по Скрині з предметом → прибрати з руки</div>
+        </div>
+      </div>
+      <div class="chips">${chips}</div>
+      <div class="tip">Спершу клас відповідає, потім командує: «ПКМ по комірці 1!»</div>
+    </div>`;
+  },
+  after(act) {
+    if (act && act.type === "split" && act.i < 3) S.lv.split[act.i] = true;
+    this.updateQ();
+    renderCenter();
+  }
+};
+
+/* ---------- Рівень 5: Збери рюкзак у табір ---------- */
+const MISSIONS = [
+  { list: [["stone", 70], ["pearl", 20], ["sword", 2], ["glass", 30]], fits: true },
+  { list: [["stone", 150], ["pearl", 40], ["sword", 3], ["glass", 64]], fits: false }
+];
+function needCells(list) { return list.map(([id, n]) => [id, Math.ceil(n / ITEMS[id].max)]); }
+LEVELS[5] = {
+  title: "Збери рюкзак у табір",
+  interactive: true,
+  init() {
+    S.lv = { vote: null, result: null, success: false, noticed: false };
+    S.hidden = new Set();
+    clearSlots();
+    this.updateQ();
+  },
+  get M() { return MISSIONS[S.l5m]; },
+  countsText() {
+    const nc = needCells(this.M.list);
+    const total = nc.reduce((a, [, c]) => a + c, 0);
+    const short = { stone: "камінь", pearl: "перлини", sword: "мечі", glass: "скло", wood: "дерево", apple: "яблука" };
+    return { total, text: nc.map(([id, c]) => `${short[id]} ${c}`).join(", "), sum: nc.map(([, c]) => c).join(" + ") };
+  },
+  updateQ() {
+    const c = this.countsText();
+    if (S.l5m === 0) {
+      setQ("Чи поміститься все в 9 комірок?",
+        `Так! Треба ${c.total} ${cellsWord(c.total)}: ${c.text}.`,
+        "Порахуйте комірки для кожного предмета окремо: заповнюємо по черзі.");
+    } else {
+      setQ("Новий список! Чи поміститься все в 9 комірок?",
+        `Ні! Треба ${c.total} ${cellsWord(c.total)}: ${c.sum} = ${c.total}. А є лише 9.`,
+        "Порахуйте комірки для кожного предмета і складіть разом.",
+        () => this.notice());
+    }
+  },
+  totals() {
+    const tot = {}, cnt = {};
+    S.slots.forEach(s => { if (s) { tot[s.id] = (tot[s.id] || 0) + s.n; cnt[s.id] = (cnt[s.id] || 0) + 1; } });
+    return { tot, cnt, used: S.slots.filter(Boolean).length };
+  },
+  render() {
+    const L = S.lv, M = this.M, { tot } = this.totals();
+    const rows = M.list.map(([id, need]) => {
+      const have = tot[id] || 0;
+      const cls = have === need ? "ok" : have > need ? "over" : "";
+      return `<div class="need ${cls}"><span class="ic">${ICON[id]}</span><span class="nl">${amountLabel(id, need)}</span><span class="np">${have === need ? "зібрано ✔" : `є ${have}`}</span></div>`;
+    }).join("");
+    const voteTxt = L.vote === "yes" ? "поміститься" : L.vote === "no" ? "не поміститься" : "—";
+    let resHTML = L.result ? L.result.map(r => `<div class="rl ${r.k}">${r.t}</div>`).join("")
+      : `<div class="rl info">Діти командують — викладач розкладає. Потім натисніть «Перевірити рюкзак».</div>`;
+    let next = "";
+    if (S.l5m === 0 && L.success) next = `<button class="btn btn-gold" data-act="mission2">Друга місія →</button>`;
+    if (S.l5m === 1 && L.noticed) next = `<button class="btn btn-gold" data-act="final">Фінал →</button>`;
+    return `<div class="l5">
+      <div class="l5-left">
+        <div class="l5-head">Місія ${S.l5m + 1} з 2 · Список</div>
+        ${rows}
+        <div class="cheat5">
+          <div><span class="kbd l">ЛКМ</span>цілий стак</div>
+          <div><span class="kbd r">ПКМ</span>1 предмет або половина</div>
+          <div><span class="kbd s">Shift + ЛКМ</span>одразу в комірку</div>
+        </div>
+      </div>
+      <div class="l5-right">
+        <div class="vote">Версія класу: <span style="color:var(--gold)">${voteTxt}</span></div>
+        <div class="row-btns vote">
+          <button class="btn ${L.vote === "yes" ? "sel" : "btn-dark"}" data-act="vote-yes">Поміститься</button>
+          <button class="btn ${L.vote === "no" ? "sel" : "btn-dark"}" data-act="vote-no">Не поміститься</button>
+        </div>
+        <div class="row-btns"><button class="btn btn-green" data-act="check">Перевірити рюкзак</button>${next}</div>
+        <div class="result">${resHTML}</div>
+      </div>
+    </div>`;
+  },
+  act(name) {
+    const L = S.lv;
+    if (name === "vote-yes" || name === "vote-no") {
+      L.vote = name === "vote-yes" ? "yes" : "no";
+      log(`Версія класу: ${L.vote === "yes" ? "поміститься" : "не поміститься"}`, "Перевіримо разом — розкладаємо!", "info");
+      if (S.l5m === 1 && L.vote === "no") { this.notice(); return; }
+      L.result = [{ k: "info", t: "Добре, перевіримо! Командуйте, що й куди покласти." }];
+      renderCenter();
+    }
+    if (name === "check") this.check();
+    if (name === "mission2") {
+      S.l5m = 1; this.init();
+      log("Друга місія!", "Новий список. Чи все поміститься?", "level");
+      renderCenter();
+    }
+    if (name === "final") showFinal();
+  },
+  notice() {
+    const L = S.lv, c = this.countsText();
+    L.noticed = true;
+    L.result = [
+      { k: "big", t: "Ви помітили!" },
+      { k: "info", t: `Рахуємо комірки: ${c.text}.` },
+      { k: "info", t: `${c.sum} = ${c.total}. А в нас лише 9!` }
+    ];
+    if (!S.answerShown) showAnswerText();
+    log("Список не поміщається", `Треба ${c.total} ${cellsWord(c.total)}, а є 9.`, "gold");
+    renderCenter();
+  },
+  check() {
+    const L = S.lv, M = this.M, { tot, cnt, used } = this.totals();
+    const out = [];
+    let ok = true;
+    let missing = false;
+    M.list.forEach(([id, need]) => {
+      const have = tot[id] || 0, nm = ITEMS[id].name;
+      if (have < need) { ok = false; missing = true; out.push({ k: "todo", t: `${nm}: ще бракує — є ${have} з ${need}.` }); }
+      else if (have > need) { ok = false; out.push({ k: "todo", t: `${nm}: більше, ніж треба — ${have} з ${need}. Зайве можна прибрати.` }); }
+      else out.push({ k: "ok", t: `${nm}: ${need} — зібрано!` });
+    });
+    Object.keys(tot).forEach(id => {
+      if (!M.list.some(([x]) => x === id)) { ok = false; out.push({ k: "todo", t: `${ITEMS[id].name} немає в списку — можна прибрати.` }); }
+    });
+    Object.keys(cnt).forEach(id => {
+      const best = Math.ceil(tot[id] / ITEMS[id].max);
+      if (cnt[id] > best) {
+        ok = false;
+        out.push({ k: "todo", t: `${ITEMS[id].name} займає ${cnt[id]} ${cellsWord(cnt[id])}, а вміститься в ${best}. Доповніть неповну комірку!` });
+      }
+    });
+    if (S.hand) { ok = false; out.push({ k: "todo", t: `У руці ще є ${ITEMS[S.hand.id].name.toLowerCase()} × ${S.hand.n} — покладіть у комірку.` }); }
+
+    if (!M.fits && used === 9 && missing) {
+      this.notice();
+      L.result.unshift({ k: "todo", t: "Усі 9 комірок зайняті, а в списку ще є речі!" });
+      renderCenter();
+      return;
+    }
+    // Показуємо спершу те, що ще треба зробити, потім готове (до 5 рядків)
+    const lines = out.filter(r => r.k === "todo").concat(out.filter(r => r.k === "ok")).slice(0, 5);
+    lines.push({ k: "info", t: `Зайнято комірок: ${used} з 9.` });
+    if (ok && M.fits) {
+      L.success = true; S.l5used = used;
+      L.result = [{ k: "big", t: "Усе зібрано!" }, { k: "info", t: `Зайнято ${used} з 9 комірок. Вільних: ${9 - used}.` },
+        { k: "info", t: "Кожна комірка заповнена якнайкраще." }];
+      log("Перевірка рюкзака → усе зібрано!", `Зайнято ${used} з 9 комірок.`, "gold");
+    } else {
+      L.result = lines;
+      log("Перевірка рюкзака", ok ? "Усе на місці." : "Є що доробити — дивіться список.", "info");
+    }
+    renderCenter();
+  },
+  after() { if (S.lv.result && !S.lv.success && !S.lv.noticed) S.lv.result = null; renderCenter(); }
+};
+
+/* =========================================================
+   ФІНАЛ
+   ========================================================= */
+function showFinal() {
+  S.run++; S.busy = false; S.hand = null; renderHand();
+  const c2 = needCells(MISSIONS[1].list).reduce((a, [, c]) => a + c, 0);
+  const f = $("final");
+  f.innerHTML = `<div class="final-card">
+    <div class="final-top">
+      <div class="final-fire">${ICON.fire}</div>
+      <div>
+        <div class="final-title">Рюкзак зібрано!<br>Табір готовий</div>
+        <div class="final-sub">Академія пригод може спати спокійно біля вогнища.</div>
+      </div>
+      <div class="final-fire">${ICON.fire}</div>
+    </div>
+    <div class="final-grid">
+      <div class="fcard"><h3>Стаки</h3><p>Блоки — 64<br>Перлина — 16<br>Меч — 1 (не складається)</p></div>
+      <div class="fcard"><h3>Місії</h3><p>Місія 1: усе вмістилось у ${S.l5used} ${S.l5used === 1 ? "комірці" : "комірках"} з 9.<br>Місія 2: треба ${c2} ${cellsWord(c2)} — більше, ніж 9!</p></div>
+      <div class="fcard"><h3>Кнопки</h3><p>ЛКМ — цілий стак<br>ПКМ — 1 предмет або половина<br>Shift + ЛКМ — одразу в комірку</p></div>
+    </div>
+    <div class="final-sub">Секрет майстра: заповнюємо комірки по черзі, як склянки водою.</div>
+    <div class="final-btns">
+      <button class="btn btn-big btn-dark" id="finBack">← До рівня 5</button>
+      <button class="btn btn-big btn-gold" id="finRestart">Почати спочатку</button>
+    </div>
+  </div>`;
+  f.classList.remove("hidden");
+  $("finBack").onclick = () => f.classList.add("hidden");
+  $("finRestart").onclick = () => { S.l5m = 0; S.l3idx = 0; goLevel(1); };
+}
+
+/* =========================================================
+   НАВІГАЦІЯ
+   ========================================================= */
+function goLevel(n, isReset) {
+  if (n < 1 || n > 5) return;
+  S.run++;
+  S.busy = false;
+  S.hand = null;
+  $("final").classList.add("hidden");
+  if (!isReset && n !== S.level) { if (n === 5) S.l5m = 0; }
+  S.level = n;
+  S.q = null;
+  LEVELS[n].init();
+  renderHand(); renderChest(); renderTop(); renderCenter();
+  log(isReset ? `Рівень ${n} почато заново` : `Рівень ${n}: ${LEVELS[n].title}`,
+    LEVELS[n].interactive ? "Діти командують — викладач натискає." : "Досліджуємо разом!", "level");
+}
+$("btnPrev").onclick = () => goLevel(S.level - 1);
+$("btnNext").onclick = () => S.level === 5 ? showFinal() : goLevel(S.level + 1);
+$("btnReset").onclick = () => goLevel(S.level, true);
+$("btnHint").onclick = () => { S.hintShown = true; renderQ(); };
+$("btnAnswer").onclick = revealAnswer;
+
+$("center").addEventListener("click", e => {
+  const b = e.target.closest("[data-act]");
+  if (!b || b.disabled) return;
+  const L = LEVELS[S.level];
+  if (L.act) L.act(b.dataset.act, b);
+});
+// кнопки не тримають фокус — щоб пробіл/Enter випадково не натискали їх знову
+document.addEventListener("mouseup", () => { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); });
+
+document.addEventListener("keydown", e => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.key === "ArrowRight") { e.preventDefault(); S.level === 5 ? showFinal() : goLevel(S.level + 1); }
+  else if (e.key === "ArrowLeft") {
+    e.preventDefault();
+    if (!$("final").classList.contains("hidden")) $("final").classList.add("hidden");
+    else goLevel(S.level - 1);
+  }
+  else if (e.code === "KeyR") { e.preventDefault(); goLevel(S.level, true); }
+});
+
+/* =========================================================
+   СТАРТ
+   ========================================================= */
+fit();
+goLevel(1);
+</script>
+</body>
+</html>
