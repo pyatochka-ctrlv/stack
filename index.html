@@ -245,15 +245,20 @@
   }
 
   /* Рівень 2 */
-  .l2 { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; height: 100%; }
+  .l2 { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; height: 100%; }
+  .l2-intro { font-size: 30px; font-weight: 900; color: var(--gold); text-shadow: 3px 3px 0 var(--edge); text-align: center; }
+  .l2-known { display: flex; align-items: center; gap: 28px; }
+  .sc-known { display: flex; align-items: center; gap: 12px; padding: 6px 18px; font-size: 26px; font-weight: 800; }
+  .sc-known .ic { width: 48px; height: 48px; }
+  .sc-known b { font-size: 34px; color: #c2410c; }
   .l2-step { font-size: 26px; font-weight: 800; color: var(--muted); }
   .l2-main { display: flex; align-items: center; gap: 40px; }
-  .l2-icon { width: 180px; height: 180px; background: var(--slot); border: 6px solid #4a3220; padding: 20px; box-shadow: inset 6px 6px 0 #fffaf0, inset -6px -6px 0 #cdb68b; }
+  .l2-icon { width: 160px; height: 160px; background: var(--slot); border: 6px solid #4a3220; padding: 20px; box-shadow: inset 6px 6px 0 #fffaf0, inset -6px -6px 0 #cdb68b; }
   .l2-name { font-size: 44px; font-weight: 900; }
   .l2-num { font-size: 120px; font-weight: 900; color: var(--gold); line-height: 1; text-shadow: 5px 5px 0 var(--edge); }
   .l2-expl { font-size: 32px; font-weight: 800; text-align: center; max-width: 900px; }
   .l2-sum { display: flex; gap: 24px; }
-  .l2-sum .sc { width: 240px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .l2-sum .sc { width: 210px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
   .l2-sum .sc .ic { width: 100px; height: 100px; }
   .l2-sum .sc .nm { font-size: 30px; font-weight: 900; }
   .l2-sum .sc .nb { font-size: 64px; font-weight: 900; color: #c2410c; line-height: 1; }
@@ -971,14 +976,15 @@ LEVELS[1] = {
 };
 
 /* ---------- Рівень 2: Різні стаки ---------- */
-const L2_SEQ = ["stone", "pearl", "sword"];
+const L2_SEQ = ["apple", "pearl", "sword"];
+const L2_SUM = ["stone", "apple", "pearl", "sword"];
 const L2_EXPL = {
-  stone: "Блоки складаються в стак по 64.",
+  apple: "Їжа теж складається по 64, як блоки.",
   pearl: "Перлини складаються лише по 16.",
   sword: "Меч — 1, бо спорядження не складається в стак."
 };
 const L2_HINT = {
-  stone: "Згадайте рівень 1!",
+  apple: "Яблуко — не блок. Як думаєте, влізе більше чи менше, ніж каменю?",
   pearl: "Перлини рідкісні. Їх уміщується менше, ніж блоків.",
   sword: "Чи можна тримати два мечі в одній руці?"
 };
@@ -987,15 +993,15 @@ LEVELS[2] = {
   interactive: false,
   init() {
     S.lv = { step: 0, revealed: false, done: false };
-    S.hidden = new Set(ORDER);
+    S.hidden = new Set(ORDER.filter(id => id !== "stone"));
     clearSlots();
     this.updateQ();
   },
   updateQ() {
     const L = S.lv;
     if (L.done) {
-      setQ("Що складається краще: камінь, перлина чи меч?",
-        "Камінь — по 64, перлина — по 16, меч — лише 1.",
+      setQ("Що складається краще: яблуко, перлина чи меч?",
+        "Яблуко — по 64, перлина — по 16, меч — лише 1.",
         "Порівняйте числа в комірках 1, 2 і 3.");
       return;
     }
@@ -1008,8 +1014,8 @@ LEVELS[2] = {
     if (L.done) {
       return `<div class="l2">
         <div class="l2-expl">Що ми дізналися:</div>
-        <div class="l2-sum">${L2_SEQ.map(id => `<div class="card sc"><div class="ic">${ICON[id]}</div><div class="nm">${ITEMS[id].name}</div><div class="nb">${ITEMS[id].max}</div></div>`).join("")}</div>
-        <div class="l2-expl">Дерево, скло і яблуко — теж по 64, як камінь.</div>
+        <div class="l2-sum">${L2_SUM.map(id => `<div class="card sc"><div class="ic">${ICON[id]}</div><div class="nm">${ITEMS[id].name}</div><div class="nb">${ITEMS[id].max}</div></div>`).join("")}</div>
+        <div class="l2-expl">Дерево і скло — теж по 64, як камінь.</div>
         <div class="tip">Розміри стаків тепер видно у Скрині.</div>
       </div>`;
     }
@@ -1021,7 +1027,11 @@ LEVELS[2] = {
       <button class="btn btn-big" data-act="next">${L.step < 2 ? "Наступний предмет →" : "Підсумок →"}</button>`;
     else bottom = `<div class="tip">Обговоріть разом, потім натисніть «Показати відповідь».</div>`;
     return `<div class="l2">
-      <div class="l2-step">Предмет ${L.step + 1} з 3</div>
+      <div class="l2-intro">Не всі предмети складаються по 64. Перевіримо!</div>
+      <div class="l2-known">
+        <div class="card sc-known"><span class="ic">${ICON.stone}</span>Вже знаємо: Камінь — <b>64</b></div>
+        <div class="l2-step">Предмет ${L.step + 1} з 3</div>
+      </div>
       <div class="l2-main">
         <div class="l2-icon">${ICON[id]}</div>
         <div><div class="l2-name">${it.name}</div><div class="l2-num" id="bigNum">${num}</div></div>
@@ -1050,7 +1060,7 @@ LEVELS[2] = {
     if (name !== "next") return;
     const L = S.lv;
     if (L.step < 2) { L.step++; L.revealed = false; }
-    else { L.done = true; S.hidden.clear(); renderChest(); log("Підсумок", "Камінь 64 · Перлина 16 · Меч 1", "gold"); }
+    else { L.done = true; S.hidden.clear(); renderChest(); log("Підсумок", "Камінь 64 · Яблуко 64 · Перлина 16 · Меч 1", "gold"); }
     this.updateQ();
     renderCenter();
   }
